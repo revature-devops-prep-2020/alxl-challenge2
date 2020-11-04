@@ -52,8 +52,8 @@ jobs:
       freeStyleJob('seed') {
         parameters{
           stringParam('gitURL', '', 'URL for Github source code containing Jenkinsfile')
-          stringParam('gitBranch', '', 'Branch to target')
           stringParam('projectName', '', 'Name of project')
+          stringParam('gitBranch', 'main', 'Branch to target')
           stringParam('slackChannel', '', 'Slack channel for the msg')
           stringParam('kubectlServer', 'https://kubernetes.default.svc', 'Kubernetes API server IP')
         }

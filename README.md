@@ -51,3 +51,6 @@ This can take a few minutes. Once it is finished, the following command will giv
 kubectl get svc -n revcog
 ```
 Navigating to that IP in your browser will give you access to the Jenkins server.
+
+### Configure Jenkins
+First, use the Configuration as Code settings to apply the Jenkins configuration from [here](https://raw.githubusercontent.com/revature-devops-prep-2020/alxl-challenge2/main/jenkins.yaml). Then, configure the existing credentials to match your correct values. Manually run the seed job (`Build With Parameters`) to set up a pipeline for your target project. Be sure to configure the SonarCloud and GitHub webhooks.
