@@ -1,4 +1,4 @@
-# Challenge 1
+# Challenge 2
 Build a Jenkins CI/CD pipeline for a Dockerized Spring/Node/DotNet microservice on a Kubernetes environment on AWS using Jenkins. Set up your cloud infrastructure using `awscli`, register a GitHub hook to trigger a Jenkins build, and validate code quality with SonarCloud before publishing a Docker image to DockerHub. Use `kubectl` to deploy the image to both a testing and staging environment. Report build, test, and deployment results via Slack/Discord or email message.
 
 Include a custom ruleset for SonarCloud, a quality gate to fail a build under these rules, and integrate AquaSecurity's Trivy into the pipeline to scan for docker image vulnerabilities.
