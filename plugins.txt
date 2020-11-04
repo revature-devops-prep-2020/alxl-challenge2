@@ -1,7 +1,6 @@
 configuration-as-code
 docker-plugin
 docker-workflow
-dotnet-sdk
 git
 github
 gradle
@@ -16,3 +15,4 @@ pipeline-npm
 slack
 sonar
 workflow-aggregator
+workflow-basic-steps

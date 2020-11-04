@@ -1,0 +1,114 @@
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - string:
+              id: "sonar-token"
+              scope: GLOBAL
+              secret: ""
+          - string:
+              id: "slack-token"
+              scope: GLOBAL
+              secret: ""
+          - usernamePassword:
+              id: "dockerhub-creds"
+              password: ""
+              scope: GLOBAL
+              username: ""
+          - string:
+              id: "kubectl-creds"
+              scope: GLOBAL
+              secret: ""
+unclassified:
+  slackNotifier:
+    botUser: false
+    sendAsText: false
+    teamDomain: "revaturetrain-cx22851"
+    tokenCredentialId: "slack-token"
+  sonarGlobalConfiguration:
+    buildWrapperEnabled: true
+    installations:
+      - credentialsId: "sonar-token"
+        name: "sonar-server"
+        serverUrl: "https://sonarcloud.io"
+        triggers:
+          skipScmCause: false
+          skipUpstreamCause: false
+tool:
+  git:
+    installations:
+      - home: "git"
+        name: "Default"
+  gradle:
+    installations:
+      - name: "gradle"
+        properties:
+          - installSource:
+              installers:
+                - gradleInstaller:
+                    id: "6.8-milestone-2"
+jobs:
+  - script: >
+      freeStyleJob('seed') {
+        parameters{
+          stringParam('gitURL', '', 'URL for Github source code containing Jenkinsfile')
+          stringParam('gitBranch', '', 'Branch to target')
+          stringParam('projectName', '', 'Name of project')
+          stringParam('slackChannel', '', 'Slack channel for the msg')
+          stringParam('kubectlServer', 'https://kubernetes.default.svc', 'Kubernetes API server IP')
+        }
+        steps {
+          dsl {
+            text('''
+      folder("^${projectName}") {
+          description("Jobs for project ^${projectName}")
+      }
+
+      freeStyleJob("^${projectName}/^${gitBranch}-listen") {
+          properties {
+              githubProjectUrl("^${gitURL}")
+          }
+          triggers {
+              gitHubPushTrigger()
+          }
+          scm {
+              git {
+                  remote {
+                      url("^${gitURL}")
+                  }
+                  branches("*/^${gitBranch}")
+              }
+          }
+          publishers {
+              downstream("^${projectName}/^${gitBranch}-pipe")
+          }
+      }
+
+      pipelineJob("^${projectName}/^${gitBranch}-pipe") {
+          parameters {
+              stringParam('gitURL', "^${gitURL}", 'URL for Github source code containing Jenkinsfile')
+              stringParam('projectName', "^${projectName}", 'Name of project')
+              stringParam('gitBranch', "^${gitBranch}", 'Branch to checkout')
+              stringParam('slackChannel', "^${slackChannel}", 'Slack channel for the msg')
+              stringParam('kubectlServer', "^${kubectlServer}", 'IP of Kubernetes API server')
+          }
+          definition {
+              cpsScm {
+                  scm {
+                      git {
+                          remote {
+                              url("^${gitURL}")
+                          }
+                          branch("*/^${gitBranch}")
+                      }
+                  }
+                  lightweight()
+              }
+          }
+      }
+            ''')
+            ignoreExisting();
+            removeAction('IGNORE');
+          }
+        }
+      }

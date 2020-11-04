@@ -33,13 +33,6 @@ spec:
           volumeMounts:
             - name: jenkins-home
               mountPath: "/var/jenkins_home"
-        - name: trivy
-          image: aquasec/trivy:latest
-          tty: true
-          command: ["/bin/sh"]
-          workingDir: ${workingDir}
-          securityContext:
-            privileged: true
         - name: dind
           image: docker:18.05-dind
           securityContext:

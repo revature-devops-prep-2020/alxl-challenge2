@@ -1,3 +1,9 @@
+def dockerImgName = "alxl/${projectName}"
+def dockerTLatest = "${dockerImgName}:latest"
+def dockerTBuildNum = "${dockerImgName}:${currentBuild.number}"
+
+def projMsgName = "project '${projectName}' [${gitBranch}:${currentBuild.number}]"
+
 pipeline {
     agent any
 
@@ -19,7 +25,7 @@ pipeline {
             post {
                 failure {
                     slackSend(color: 'danger', channel: "${slackChannel}",
-                    message: "project '${projectName}' [${gitBranch}:${currentBuild.number}] has failed to build.")
+                    message: "${projMsgName} failed to build.")
                 }
             }
         }
@@ -33,35 +39,57 @@ pipeline {
             post {
                 failure {
                     slackSend(color: 'danger', channel: "${slackChannel}",
-                    message: "project '${projectName}' [${gitBranch}:${currentBuild.number}] has failed to get scanned by SonarCloud.")
+                    message: "${projMsgName} failed to get scanned by SonarCloud.")
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
 
         stage('Make Docker image') {
             steps {
-                sh "docker build -t alxl/${projectName}:${currentBuild.number} ."
-                sh "docker tag alxl/${projectName}:${currentBuild.number} alxl/${projectName}:latest"
+                sh "docker build -t ${dockerTBuildNum} ."
             }
             post {
                 failure {
                     slackSend(color: 'danger', channel: "${slackChannel}",
-                    message: "project '${projectName}' [${gitBranch}:${currentBuild.number}] has failed to Dockerize.")
+                    message: "${projMsgName} failed to Dockerize.")
+                }
+            }
+        }
+
+        stage('Scan image') {
+            steps {
+                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                    sh "trivy image --exit-code 1 ${dockerTBuildNum}"
+                }
+            }
+            post {
+                failure {
+                    slackSend(color: 'warning', channel: "${slackChannel}",
+                    message: "${projMsgName} has vulnerabilities in its image.")
                 }
             }
         }
 
         stage('Push to Docker Hub') {
             steps {
+                sh "docker tag ${dockerTBuildNum} ${dockerTLatest}"
                 withDockerRegistry([credentialsId: 'dockerhub-creds', url: '']) {
-                    sh "docker push alxl/${projectName}:${currentBuild.number}"
-                    sh "docker push alxl/${projectName}:latest"
+                    sh "docker push ${dockerTBuildNum}"
+                    sh "docker push ${dockerTLatest}"
                 }
             }
             post {
                 failure {
                     slackSend(color: 'danger', channel: "${slackChannel}",
-                    message: "project '${projectName}' [${gitBranch}:${currentBuild.number}] has failed to push to the CR.")
+                    message: "${projMsgName} failed to push to the CR.")
                 }
             }
         }
@@ -78,7 +106,7 @@ pipeline {
             post {
                 failure {
                     slackSend(color: 'danger', channel: "${slackChannel}",
-                    message: "project '${projectName}' [${gitBranch}:${currentBuild.number}] has failed to deploy to K8s.")
+                    message: "${projMsgName} failed to deploy to K8s.")
                 }
             }
         }
@@ -86,7 +114,7 @@ pipeline {
     post {
         success {
             slackSend(color: 'good', channel: "${slackChannel}",
-                message: "project '${projectName}' [${gitBranch}:${currentBuild.number}] has passed all tests and was successfully built and pushed to the CR.")
+                message: "${projMsgName} passed all tests and was successfully built and pushed to the CR.")
         }
     }
 }
